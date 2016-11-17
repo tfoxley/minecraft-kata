@@ -1,0 +1,217 @@
+<html>
+	<head>
+		<script>
+			var board = [];
+			var boardSize = 9;
+			var numBombs = 10;
+			var gameOver = false;
+			var revealBombs = false;
+
+			function generateBoard() {
+				for (var x = 0; x < boardSize; x++) {
+					board[x] = [];
+					for (var y = 0; y < boardSize; y++) {
+						var tile = {
+							isBomb: false,
+							clicked: false,
+							adjacentBombs: 0
+						};
+						board[x][y] = tile;
+					}
+				}
+
+				addBombs();
+				drawBoard();
+			}
+
+			function addBombs() {
+				var bombCount = 0;
+				while (bombCount < numBombs) {
+					var x = Math.floor(Math.random() * boardSize);
+					var y = Math.floor(Math.random() * boardSize);
+					if (!board[x][y].isBomb) {
+						board[x][y].isBomb = true;
+						notifyNeighborsOfBomb(x, y);
+						bombCount++;
+					}
+				}
+			}
+
+			function notifyNeighborsOfBomb(x, y) {
+				addAdjacentBomb(x, y - 1);
+				addAdjacentBomb(x, y + 1);
+				addAdjacentBomb(x - 1, y);
+				addAdjacentBomb(x - 1, y - 1 );
+				addAdjacentBomb(x - 1, y + 1);
+				addAdjacentBomb(x + 1, y);
+				addAdjacentBomb(x + 1, y - 1);
+				addAdjacentBomb(x + 1, y + 1);
+			}
+
+			function addAdjacentBomb(x, y) {
+				if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
+					board[x][y].adjacentBombs++;
+				}
+			}
+
+			function drawBoard() {
+				var table = document.createElement("table");
+				for (var y = 0; y < boardSize; y++) {
+					var row = document.createElement("tr");
+					table.appendChild(row);
+					for (var x = 0; x < boardSize; x++) {
+						var tile = document.createElement("td");
+						tile.setAttribute("data-x", x);
+						tile.setAttribute("data-y", y);
+						if (board[x][y].clicked) {
+							tile.setAttribute("class", "clicked near-" + board[x][y].adjacentBombs);
+							tile.textContent = board[x][y].adjacentBombs;
+						}
+
+						// tile.textContent = x + 1 + (y * boardSize);
+						if (board[x][y].isBomb && (gameOver || revealBombs)) {
+							tile.setAttribute("class", "bomb");
+						}
+						row.appendChild(tile);
+						tile.addEventListener("click", function(event) {
+							var coordX = Number(event.target.dataset.x);
+							var coordY = Number(event.target.dataset.y);
+							tileClicked(coordX, coordY);
+						});
+					}
+				}
+
+				var revealRow = document.createElement("tr");
+				var revealCell = document.createElement("td");
+				revealCell.setAttribute("class", "last-row lose");
+				revealCell.setAttribute("colspan", boardSize);
+				var revealButton = document.createElement("button");
+				revealButton.addEventListener("click", function() {
+					revealBombs = !revealBombs;
+					drawBoard();
+				});
+				revealButton.textContent = "Toggle Bombs";
+				revealCell.appendChild(revealButton);
+				var restartButton = document.createElement("button");
+				restartButton.addEventListener("click", function() {
+					window.location.reload();
+				});
+				restartButton.textContent = "Restart";
+				revealCell.appendChild(restartButton);
+				revealRow.appendChild(revealCell);
+				table.appendChild(revealRow);
+
+				if (gameOver) {
+					var lastRow = document.createElement("tr");
+					var cell = document.createElement("td");
+					cell.setAttribute("class", "last-row lose");
+					cell.setAttribute("colspan", boardSize);
+					cell.textContent = "Game Over!";
+					lastRow.appendChild(cell);
+					table.appendChild(lastRow);
+				}
+
+				document.body.innerHTML = '';
+				document.body.appendChild(table);
+			}
+
+			function tileClicked(x, y) {
+				if (!gameOver) {
+					if (board[x][y].isBomb) {
+						gameOver = true;
+					} else {
+						board[x][y].clicked = true;
+						if (board[x][y].adjacentBombs < 1) {
+							clickNeighborTiles(x, y);
+						}
+					}
+
+					drawBoard();
+				}
+			}
+
+			function clickNeighborTiles(x, y) {
+				clickTile(x, y - 1);
+				clickTile(x, y + 1);
+				clickTile(x - 1, y);
+				clickTile(x - 1, y - 1 );
+				clickTile(x - 1, y + 1);
+				clickTile(x + 1, y);
+				clickTile(x + 1, y - 1);
+				clickTile(x + 1, y + 1);
+			}
+
+			function clickTile(x, y) {
+				if (x >= 0 && x < boardSize && y >= 0 && y < boardSize && !board[x][y].clicked) {
+					tileClicked(x, y);
+				}
+			}
+		</script>
+
+		<style>
+			table {
+				border: 1px solid #000;
+				margin: 50 auto 0 auto;
+			}
+
+			td {
+				border: 1px solid #aaa;
+				width: 50px;
+				height: 50px;
+				background-color: #aaa;
+				color: #fff;
+				text-align: center;
+				cursor: pointer;
+				font-size: 24px;
+				font-weight: bold;
+			}
+
+			td.clicked {
+				background-color: #fff;
+				color: #000;
+			}
+
+			td.clicked.near-0 {
+				color: #fff;
+			}
+
+			td.clicked.near-1 {
+				color: blue;
+			}
+
+			td.clicked.near-2 {
+				color: green;
+			}
+
+			td.clicked.near-3 {
+				color: red;
+			}
+
+			td.clicked.near-4 {
+				color: yellow;
+			}
+
+			td.clicked.near-5 {
+				color: pink;
+			}
+
+			td.bomb {
+				background-color: red;
+			}
+
+			td.last-row {
+				background-color: #fff;
+			}
+
+			td.lose {
+				color: red;
+			}
+
+			button {
+				margin: 0 15px;
+			}
+		</style>
+	</head>
+	<body onload="generateBoard();">
+	</body>
+</html>
